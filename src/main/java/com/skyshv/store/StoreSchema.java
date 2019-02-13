@@ -1,5 +1,6 @@
 package com.skyshv.store;
 
+import com.skyshv.utils.IColumnFormatter;
 import com.skyshv.utils.RowIdGenerator;
 import com.skyshv.utils.RowLocker;
 
@@ -13,6 +14,7 @@ public class StoreSchema {
     private StringColumn[] columns = new StringColumn[8];
     private String lastSourceSystem;
     private String lastSourceField;
+    private StringColumn lastColumn;
     private int columnNums = 0;
     private RowIdGenerator idGen = new RowIdGenerator();
     private RowLocker locker = new RowLocker();
@@ -24,14 +26,19 @@ public class StoreSchema {
 
     public void PrintResult(String... keyFields) {
         final Long rowId = idGen.getRowId(keyFields);
+        StringBuilder sbHeader = new StringBuilder();
+        StringBuilder record = new StringBuilder();
+
         for (int i = 0; i < columnNums; i++) {
-            System.out.print(columns[i].get(rowId) == null? "NULL" : columns[i].get(rowId).value);
-            if (i == columnNums - 1) {
-                System.out.println();
-            } else {
-                System.out.print("|");
+            sbHeader.append(columns[i].getColumnName());
+            record.append(columns[i].getFormatter().format(columns[i].get(rowId) ));
+            if (i < columnNums - 1) {
+                sbHeader.append("|");
+                record.append("|");
             }
         }
+        System.out.println(sbHeader.toString());
+        System.out.println(record.toString());
     }
 
     public void consumeSourceFeed(String sourceSystem, String header, String record) {
@@ -89,9 +96,11 @@ public class StoreSchema {
                     System.arraycopy(columns, 0, newColumns, 0, columns.length);
                     columns = newColumns;
                 }
-                columns[columnNums - 1] = new StringColumn();
+                final StringColumn stringColumn = new StringColumn(columnName);
+                columns[columnNums - 1] = stringColumn;
 
             }
+            lastColumn = columns[columnNameIdxMap.get(columnName)];
             HashMap<String, Integer> fieldMaps = sourceSystemFieldsColumnIdx.get(lastSourceSystem);
             if (fieldMaps.containsKey(fieldName)) {
                 throw new RuntimeException("duplicate fieldname " + lastSourceSystem + "/" + fieldName);
@@ -107,6 +116,10 @@ public class StoreSchema {
             return this;
         }
 
+        public SourceSystemBuilder addFormatter(IColumnFormatter<StringColumn.StrEntry> iColumnFormatter) {
+            lastColumn.setFormatter(iColumnFormatter);
+            return this;
+        }
         public SourceSystemBuilder withSourceSystem(String system) {
             return new StoreBuilder().withSourceSystem(system);
         }

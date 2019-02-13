@@ -1,6 +1,8 @@
 package com.skyshv;
 
 import com.skyshv.store.StoreSchema;
+import com.skyshv.store.StringColumn;
+import com.skyshv.utils.IColumnFormatter;
 
 import java.util.Date;
 import java.util.stream.IntStream;
@@ -14,6 +16,15 @@ public class App {
                 .withStringField("LAST_TRADING_DATE", "LAST_TRADING_DATE", 1)
                 .withStringField("DELIVERY_DATE", "DELIVERY_DATE", 1)
                 .withStringField("MARKET", "MARKET", 0)
+                .addFormatter(new IColumnFormatter<StringColumn.StrEntry>() {
+                    @Override
+                    public String format(StringColumn.StrEntry value) {
+                        if( value == null || value.getValue() == null ) return "null";
+                        if( value.getValue().startsWith("LME_")) return value.getValue().substring(4);
+                        return value.getValue();
+
+                    }
+                })
                 .withStringField("LABEL", "LABEL", 0)
                 .withStringField("LME_CODE", "CODE", 0)
                 .asKeyField()
@@ -59,7 +70,7 @@ public class App {
 
 
         }
-            schema.PrintResult("77775");
+        schema.PrintResult("77775");
 
 
     }
